@@ -31,46 +31,34 @@ try {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet" />
     <title>{name} | Portfolio</title>
   </head>
   <body>
 
-    <!-- Header / Navigation -->
+    <!-- 360° viewer fills the screen -->
+    <div id="viewer" data-github={`https://github.com/${username}`}></div>
+
     <header>
-      <div class="logo">{name}</div>
-      <nav>
-        <ul>
-          <li><a href="#about">About</a></li>
-          <li><a href="#projects">Projects</a></li>
-          <li><a href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer">GitHub</a></li>
-        </ul>
-      </nav>
+      <h1>Hi, I'm <span class="highlight">{name}</span></h1>
+      <p class="hint">Drag to look around. Tap a pin to zoom in.</p>
     </header>
 
-    <main>
-      <!-- Hero Title Section -->
-      <section id="hero" class="hero-section">
-        <h1>Hi, I'm <span class="highlight">{name}</span></h1>
-        <p class="subtitle">
-          Passionate about technology, engineering, and using code to build cool projects.
-        </p>
-        <div class="cta-buttons">
-          <a href="#projects" class="btn primary">View Projects</a>
-          <a href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer" class="btn secondary">GitHub Profile</a>
-        </div>
-      </section>
+    <!-- Bottom sheet opened by the pins -->
+    <div class="sheet" id="sheet" hidden>
+      <button class="close" id="close" aria-label="Close">×</button>
 
-      <!-- About Section -->
-      <section id="about" class="about-section">
+      <section data-panel="about" hidden>
         <h2>About Me</h2>
-        <p>
+        <p class="about-text">
           Welcome to my website! I'm interested in building software, exploring hardware projects, and developing modern web tools.
         </p>
       </section>
 
-      <!-- Dynamic GitHub Projects Section -->
-      <section id="projects" class="projects-section">
+      <section data-panel="projects" hidden>
         <h2>Featured GitHub Repositories</h2>
         <p class="section-desc">Fetched automatically from <code>github.com/{username}</code>:</p>
 
@@ -82,7 +70,7 @@ try {
                   <h3>{repo.name}</h3>
                   {repo.language && <span class="badge">{repo.language}</span>}
                 </div>
-                
+
                 <p>{repo.description || "No description provided for this repository."}</p>
 
                 <div class="card-footer">
@@ -98,191 +86,322 @@ try {
           )}
         </div>
       </section>
-    </main>
-
-    <!-- Footer -->
-    <footer>
-      <p>&copy; {new Date().getFullYear()} {name}. Built with Astro.</p>
-    </footer>
+    </div>
 
   </body>
 </html>
 
-<style>
-  /* Global Styles & Reset */
-  :root {
-    --bg-color: #121212;
-    --card-bg: #1a1a1a;
-    --text-color: #f0f0f0;
-    --text-muted: #aaa;
-    --accent-color: #646cff;
-    --border-color: #333;
+<script>
+  import { Viewer } from '@photo-sphere-viewer/core';
+  import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
+  import '@photo-sphere-viewer/core/index.css';
+  import '@photo-sphere-viewer/markers-plugin/index.css';
+
+  // Where each pin sits (degrees). yaw: 0-360 around the room, pitch: up (+) / down (-).
+  // Click anywhere in the viewer and the console prints the yaw/pitch to use here.
+  const hotspots = [
+    { id: 'about', label: 'About', yaw: 30, pitch: -5, type: 'panel' },
+    { id: 'projects', label: 'Projects', yaw: 120, pitch: -15, type: 'panel' },
+    { id: 'github', label: 'GitHub', yaw: 220, pitch: 5, type: 'link' },
+  ];
+
+  const container = document.getElementById('viewer') as HTMLElement;
+  const sheet = document.getElementById('sheet') as HTMLElement;
+  const githubUrl = container.dataset.github as string;
+
+  const viewer = new Viewer({
+    container,
+    panorama: '/dorm.png', // put your 360 photo at public/dorm.jpg
+    defaultZoomLvl: 0,
+    navbar: ['zoom', 'fullscreen'],
+    plugins: [
+      [
+        MarkersPlugin,
+        {
+          markers: hotspots.map((h) => ({
+            id: h.id,
+            position: { yaw: `${h.yaw}deg`, pitch: `${h.pitch}deg` },
+            html: `<span class="pin"></span><span class="pin-label">${h.label}</span>`,
+            size: { width: 48, height: 48 },
+            anchor: 'center center',
+          })),
+        },
+      ],
+    ],
+  });
+
+  const markers = viewer.getPlugin(MarkersPlugin) as MarkersPlugin;
+
+  function openSheet(id: string) {
+    sheet.querySelectorAll<HTMLElement>('[data-panel]').forEach((s) => {
+      s.hidden = s.dataset.panel !== id;
+    });
+    sheet.hidden = false;
+    sheet.scrollTop = 0;
   }
 
+  function closeSheet() {
+    sheet.hidden = true;
+  }
+
+  markers.addEventListener('select-marker', async ({ marker }) => {
+    const h = hotspots.find((x) => x.id === marker.id);
+    if (!h) return;
+
+    if (h.type === 'link') {
+      window.open(githubUrl, '_blank', 'noopener');
+      return;
+    }
+
+    closeSheet();
+    try {
+      // Aim a little below the pin so it sits above the bottom sheet
+      await viewer.animate({
+        yaw: `${h.yaw}deg`,
+        pitch: `${h.pitch - 12}deg`,
+        zoom: 55,
+        speed: '30rpm',
+      });
+      openSheet(h.id);
+    } catch {
+      // Animation was interrupted by the user dragging; do nothing
+    }
+  });
+
+  // Helper for placing pins: click the view and read yaw/pitch in the console
+  viewer.addEventListener('click', ({ data }) => {
+    const deg = (r: number) => Math.round((r * 180) / Math.PI);
+    console.log(`yaw: ${(deg(data.yaw) + 360) % 360}, pitch: ${deg(data.pitch)}`);
+  });
+
+  document.getElementById('close')!.addEventListener('click', closeSheet);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet();
+  });
+</script>
+
+<style is:global>
+  :root {
+    --bg: #0f1b2d;
+    --card-bg: #15253b;
+    --text: #e4e9f1;
+    --text-muted: #9ba9be;
+    --accent: #d1ad62;
+    --border: #263a54;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font: 'EB Garamond', Georgia, serif;
+  }
+
+  html,
   body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
     margin: 0;
-    padding: 0 1.5rem;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 1.1rem;
     line-height: 1.6;
   }
 
-  /* Header */
+  #viewer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+  }
+
+  /* Title over the viewer */
   header {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2rem 0;
-  }
-
-  .logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
-
-  nav ul {
-    display: flex;
-    gap: 1.5rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  nav a {
-    color: var(--text-muted);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  nav a:hover {
-    color: var(--accent-color);
-  }
-
-  /* Main & Layout */
-  main {
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
-  /* Hero Section */
-  .hero-section {
-    padding: 4rem 0 3rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    padding: calc(env(safe-area-inset-top) + 1rem) 1.25rem 2.5rem;
+    background: linear-gradient(to bottom, rgba(15, 27, 45, 0.85), transparent);
+    pointer-events: none;
   }
 
   h1 {
-    font-size: 3rem;
-    margin: 0 0 1rem;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--accent);
+    margin: 0;
   }
 
   .highlight {
-    color: var(--accent-color);
-  }
-
-  .subtitle {
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    max-width: 600px;
-    margin-bottom: 2rem;
-  }
-
-  .cta-buttons {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
+    display: block;
+    color: var(--text);
+    font-size: clamp(2rem, 6vw, 3rem);
+    font-style: normal;
     font-weight: 600;
+    line-height: 1.05;
   }
 
-  .btn.primary {
-    background-color: var(--accent-color);
-    color: #fff;
+  .hint {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin: 0.4rem 0 0;
   }
 
-  .btn.secondary {
-    border: 1px solid var(--border-color);
-    color: #fff;
+  /* Pins (44px+ touch targets, always visible) */
+  .pin {
+    display: block;
+    width: 48px;
+    height: 48px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: rgba(15, 27, 45, 0.55);
+    box-shadow: 0 0 0 4px rgba(209, 173, 98, 0.25);
   }
 
-  /* Sections */
-  .about-section, .projects-section {
-    padding: 3rem 0;
-    border-top: 1px solid #222;
+  .pin::after {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .pin-label {
+    position: absolute;
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.3rem;
+    white-space: nowrap;
+    color: var(--accent);
+    text-shadow: 0 0 6px var(--bg), 0 0 6px var(--bg), 0 0 10px var(--bg);
+  }
+
+  /* Bottom sheet */
+  .sheet {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    z-index: 20;
+    width: min(680px, 100%);
+    max-height: 60dvh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 1.5rem 1.5rem calc(env(safe-area-inset-bottom) + 1.5rem);
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-bottom: none;
+    animation: rise 0.25s ease-out;
+  }
+
+  .sheet[hidden],
+  .sheet [hidden] {
+    display: none;
+  }
+
+  @keyframes rise {
+    from {
+      transform: translate(-50%, 30px);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+
+  .close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .close:hover {
+    color: var(--accent);
   }
 
   h2 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
+
+  .about-text {
+    margin: 0;
   }
 
   .section-desc {
-    color: #888;
-    margin-bottom: 2rem;
+    color: var(--text-muted);
+    margin: 0 0 1.25rem;
   }
 
   code {
-    background: #222;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    color: var(--accent-color);
+    font-family: var(--font);
+    font-style: italic;
+    color: var(--accent);
   }
 
-  /* Cards Grid */
+  /* Cards */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
   }
 
   .card {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.5rem;
+    border: 1px solid var(--border);
     background-color: var(--card-bg);
-    color: var(--text-color);
+    padding: 1.1rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-  }
-
-  .card:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent-color);
   }
 
   .card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
   }
 
   .card-header h3 {
-    margin: 0;
+    font-family: var(--font-display);
     font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .badge {
-    background-color: #2a2a2a;
-    color: var(--accent-color);
-    padding: 0.25rem 0.6rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: var(--accent);
   }
 
   .card p {
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 1rem;
     line-height: 1.5;
-    margin-bottom: 1.5rem;
+    margin: 0 0 1rem;
   }
 
   .card-footer {
@@ -292,22 +411,17 @@ try {
   }
 
   .card-footer a {
-    color: var(--accent-color);
+    color: var(--accent);
     text-decoration: none;
-    font-weight: 600;
   }
 
   .card-footer a:hover {
     text-decoration: underline;
   }
 
-  /* Footer */
-  footer {
-    max-width: 1000px;
-    margin: 4rem auto 2rem;
-    text-align: center;
-    color: #666;
-    border-top: 1px solid #222;
-    padding-top: 2rem;
+  @media (prefers-reduced-motion: reduce) {
+    .sheet {
+      animation: none;
+    }
   }
 </style>
