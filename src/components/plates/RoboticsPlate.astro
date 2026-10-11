@@ -1,0 +1,97 @@
+---
+// Pl. 04 — a VEX field is 6 x 6 tiles. The plan is dashed, what the robot
+// actually did is solid, and the gap is the whole job. Illustration only.
+
+const f = (n: number) => n.toFixed(1);
+
+const FX = 20;
+const FY = 24;
+const TILE = 40;
+const FIELD = TILE * 6;
+
+const grid = Array.from({ length: 5 }, (_, i) => {
+  const p = (i + 1) * TILE;
+  return `M${FX + p} ${FY} V${FY + FIELD} M${FX} ${FY + p} H${FX + FIELD}`;
+}).join(" ");
+
+const planned = "M60 223 V160 Q60 142 76 134 L128 106 Q144 98 144 82 V46";
+const drove = "M60 223 V160 Q62 142 78 134 L134 108 Q156 98 158 80 L166 46";
+
+// PID step response (setpoint, overshoot, settle)
+let pid = "";
+for (let i = 0; i <= 60; i++) {
+  const t = i / 60;
+  const x = 278 + t * 110;
+  const y = 196 - 50 * (1 - Math.exp(-3.5 * t) * Math.cos(2 * Math.PI * 1.1 * t));
+  pid += `${i ? " L" : "M"}${f(x)} ${f(y)}`;
+}
+---
+
+<svg
+  class="drawing"
+  viewBox="0 0 400 290"
+  role="img"
+  aria-label="A 6 by 6 tile robot field seen from above. A dashed planned path and a solid driven path leave the same start; after a wheel slip the driven path drifts, and a dimension marks the error at the end. To the right, a legend and a small PID step-response plot showing overshoot and settling."
+>
+  <!-- field -->
+  <rect x={FX} y={FY} width={FIELD} height={FIELD} class="sheet"></rect>
+  <path d={grid} class="ln-soft"></path>
+  <rect x={FX} y={FY} width={FIELD} height={FIELD} fill="none" class="ln-bold"></rect>
+
+  <!-- origin -->
+  <path d={`M${FX - 5} ${FY + FIELD} H${FX + 7} M${FX} ${FY + FIELD - 7} V${FY + FIELD + 5}`} class="ln"></path>
+  <text x="24" y="283" class="t-small">(0,0)</text>
+  <text x="70" y="283" class="t-small">field · 6 × 6 tiles</text>
+
+  <!-- paths -->
+  <path d={planned} class="ln-bold dash"></path>
+  <path d={drove} class="ln-accent"></path>
+
+  <!-- robot at start, facing up -->
+  <rect x="49" y="223" width="22" height="26" class="sheet"></rect>
+  <path d="M60 223 V209" class="ln"></path>
+  <path d="M60 205 L56.5 212 H63.5 Z" class="fill-ink"></path>
+
+  <!-- poses -->
+  <circle cx="60" cy="160" r="2.6" class="fill-ink"></circle>
+  <circle cx="102" cy="120" r="2.6" class="fill-ink"></circle>
+  <circle cx="144" cy="82" r="2.6" class="fill-ink"></circle>
+  <circle cx="144" cy="46" r="3.4" fill="var(--sheet)" stroke="currentColor" stroke-width="1.4"></circle>
+  <g class="on-sheet">
+    <text x="50" y="164" text-anchor="end" class="t-small">1</text>
+    <text x="102" y="112" text-anchor="middle" class="t-small">2</text>
+    <text x="134" y="86" text-anchor="end" class="t-small">3</text>
+    <text x="136" y="50" text-anchor="end" class="t-small">goal</text>
+    <text x="78" y="246" class="t-small">start</text>
+    <text x="90" y="148" class="t-small t-accent">wheel slip, once</text>
+  </g>
+
+  <!-- slip -->
+  <path d="M76 131 l6 6 M82 131 l-6 6" stroke="var(--accent)" stroke-width="1.6" fill="none"></path>
+
+  <!-- end error, dimensioned outside the field like a drawing -->
+  <path d="M144 41 V10 M166 41 V10" class="ln-soft"></path>
+  <path d="M144 15 H166" class="ln"></path>
+  <path d="M144 15 l4 -2.2 v4.4 Z M166 15 l-4 -2.2 v4.4 Z" class="fill-ink"></path>
+  <text x="177" y="19" class="t-serif t-accent">Δ</text>
+
+  <!-- legend -->
+  <path d="M276 44 H298" class="ln-bold dash"></path>
+  <text x="304" y="47">planned</text>
+  <path d="M276 62 H298" class="ln-accent"></path>
+  <text x="304" y="65">drove</text>
+  <path d="M276 76 V84 M298 76 V84 M276 80 H298" class="ln"></path>
+  <text x="304" y="83">end error</text>
+
+  <!-- PID -->
+  <text x="278" y="116" class="t-strong">PID</text>
+  <path d="M278 126 V196 H390" class="ln"></path>
+  <path d="M278 146 H390" class="ln-soft dash"></path>
+  <path d={pid} class="ln-accent"></path>
+  <text x="278" y="214" class="t-small">overshoot, settle</text>
+
+  <g class="reveal">
+    <text x="276" y="246" class="t-small t-accent">Δ: where the plan and</text>
+    <text x="276" y="257" class="t-small t-accent">the field disagreed</text>
+  </g>
+</svg>

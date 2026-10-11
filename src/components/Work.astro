@@ -1,0 +1,147 @@
+---
+import { projects } from "../data/projects";
+import Plate from "./Plate.astro";
+---
+
+<section class="section" id="work">
+  <div class="wrap">
+    <h2 class="section-title">Work</h2>
+    <p class="note">Hover a drawing for the margin notes. The drawings are illustrations, not real data.</p>
+
+    <div class="archive">
+      {projects.map((project) => (
+        <article class="entry" id={project.slug} tabindex="0">
+          <header class="head">
+            <h3>
+              <a href={`/projects/${project.slug}`}>{project.title}</a>
+            </h3>
+            <p class="cat">{project.category}</p>
+          </header>
+
+          <div class="visual">
+            <Plate kind={project.diagram} caption={project.plateCaption} />
+          </div>
+
+          <div class="body">
+            <p class="summary">{project.summary}</p>
+            <a class="more" href={`/projects/${project.slug}`}>
+              Read more <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .section {
+    padding: 1.5rem 0 4rem;
+  }
+
+  .archive {
+    display: grid;
+    gap: 4rem;
+    margin-top: 2.5rem;
+  }
+
+  .entry {
+    display: grid;
+    grid-template-areas:
+      "head"
+      "plate"
+      "body";
+    gap: 1rem;
+    scroll-margin-top: 4.5rem;
+    outline: none;
+  }
+
+  .head {
+    grid-area: head;
+  }
+
+  .visual {
+    grid-area: plate;
+    transition: transform 0.35s var(--ease);
+  }
+
+  .body {
+    grid-area: body;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: clamp(1.6rem, 3vw, 2rem);
+    line-height: 1.15;
+  }
+
+  h3 a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s var(--ease);
+  }
+
+  .entry:hover h3 a,
+  .entry:focus-within h3 a {
+    color: var(--accent);
+  }
+
+  .cat {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .summary {
+    margin: 0;
+    max-width: 30rem;
+    color: var(--ink-soft);
+  }
+
+  .more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.8rem;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--accent);
+    padding-bottom: 0.05rem;
+    transition: color 0.2s var(--ease), gap 0.2s var(--ease);
+  }
+
+  .more:hover,
+  .entry:focus-within .more {
+    color: var(--accent);
+    gap: 0.55rem;
+  }
+
+  .entry:hover .visual,
+  .entry:focus-within .visual {
+    transform: translateY(-3px);
+  }
+
+  @media (min-width: 900px) {
+    .archive {
+      gap: 5.5rem;
+    }
+
+    .entry {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "head plate"
+        "body plate";
+      column-gap: 4rem;
+      row-gap: 0.9rem;
+      align-items: start;
+    }
+  }
+
+  @media (hover: none) {
+    .entry:hover .visual,
+    .entry:focus-within .visual {
+      transform: none;
+    }
+  }
+</style>

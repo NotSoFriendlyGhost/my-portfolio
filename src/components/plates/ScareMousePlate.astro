@@ -1,0 +1,93 @@
+---
+// Pl. 01 — the thing ScareMouse actually records: a startle response,
+// plotted against the stimulus that caused it, on one shared clock.
+// Shapes are generated, not measured. This is an illustration.
+
+const X0 = 84;
+const X1 = 388;
+const T0 = 140; // stimulus onset
+const BURST_END = 184;
+const RESP = 176; // response onset
+const STIM_Y = 88;
+const FORCE_Y = 192;
+
+const f = (n: number) => n.toFixed(1);
+const jitter = (i: number) => {
+  const s = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s) - 0.5;
+};
+
+// Speaker: flat, a gated tone burst, flat.
+let stim = `M${X0} ${STIM_Y} H${T0}`;
+for (let x = T0; x <= BURST_END; x += 0.6) {
+  const ramp = Math.min(1, (x - T0) / 3, (BURST_END - x) / 3);
+  const y = STIM_Y - 24 * ramp * Math.sin(((x - T0) / 4) * Math.PI * 2);
+  stim += ` L${f(x)} ${f(y)}`;
+}
+stim += ` L${BURST_END} ${STIM_Y} H${X1}`;
+
+// Load cell: sensor noise, then a damped ring after the response onset.
+let force = "";
+let peakX = RESP;
+let peakY = FORCE_Y;
+for (let x = X0, i = 0; x <= X1; x += 1.5, i++) {
+  let y = FORCE_Y + jitter(i) * 2.4;
+  if (x >= RESP) {
+    const t = x - RESP;
+    y -= 48 * Math.exp(-t / 14) * Math.sin((t / 26) * Math.PI * 2);
+  }
+  if (y < peakY) {
+    peakY = y;
+    peakX = x;
+  }
+  force += `${i === 0 ? "M" : " L"}${f(x)} ${f(y)}`;
+}
+
+// Sample ticks along the time axis.
+const ticks = Array.from({ length: 61 }, (_, i) => X0 + i * 5)
+  .map((x) => `M${x} 250 v3`)
+  .join(" ");
+---
+
+<svg
+  class="drawing"
+  viewBox="0 0 400 280"
+  role="img"
+  aria-label="Two traces on a shared time axis: a short tone burst from the speaker, and a few moments later the load cell's force trace spikes and rings down. The gap between them is marked delta t."
+>
+  <text x="16" y="84" class="t-strong">STIMULUS</text>
+  <text x="16" y="96" class="t-small">speaker out</text>
+  <text x="16" y="188" class="t-strong">FORCE</text>
+  <text x="16" y="200" class="t-small">load cell</text>
+
+  <path d={stim} class="ln-bold"></path>
+  <path d={force} class="ln-accent"></path>
+
+  <!-- markers -->
+  <path d="M140 52 V250" class="ln-soft dash"></path>
+  <path d="M176 140 V250" class="ln-soft dash"></path>
+  <text x="144" y="48" class="t-small">
+    <tspan>t</tspan><tspan dy="2" font-size="6.5">0</tspan><tspan dy="-2"> · stimulus on</tspan>
+  </text>
+  <text x="180" y="136" class="t-small t-accent">response</text>
+
+  <!-- the interval the whole project is about -->
+  <path d="M140 233 V243 M176 233 V243 M140 238 H176" class="ln"></path>
+  <text x="158" y="229" text-anchor="middle" class="t-serif t-accent">Δt</text>
+
+  <circle cx={f(peakX)} cy={f(peakY)} r="2.6" class="fill-accent"></circle>
+
+  <!-- time axis, ticked like samples -->
+  <path d={`M${X0} 250 H${X1}`} class="ln"></path>
+  <path d={ticks} class="ln-soft"></path>
+  <text x="16" y="254" class="t-small">samples</text>
+  <text x="388" y="270" text-anchor="end" class="t-small">time →</text>
+
+  <!-- on hover -->
+  <g class="reveal">
+    <text x="190" y="62" class="t-small">tone burst</text>
+    <text x={f(peakX + 9)} y={f(peakY + 1)} class="t-small t-accent">startle peak</text>
+    <text x="196" y="230" class="t-small">Δt only means something if</text>
+    <text x="196" y="241" class="t-small">both traces share a clock</text>
+  </g>
+</svg>

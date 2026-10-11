@@ -1,0 +1,232 @@
+/* Type: Fraunces for headings (soft optical-size serif), Public Sans for reading,
+   IBM Plex Mono only inside the technical drawings. */
+:root {
+  --paper: #f2f2ef;
+  --ink: #141414;
+  --ink-soft: #3a3a38;
+  --muted: #6a6a66;
+  --rule: #d4d4cf;
+  --rule-strong: #9a9a94;
+  --accent: #0e5c4c;
+  --accent-soft: rgba(14, 92, 76, 0.12);
+  --plate: #f2f2ef;
+  --sheet: #fafaf7;
+
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+  --font: "Public Sans", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text: 1.0625rem;
+  --text-small: 0.875rem;
+
+  --header-h: 3.4rem;
+  --measure: 36rem;
+  --wide: 70rem;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--text);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.45rem 0.7rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.skip:focus {
+  top: 1rem;
+}
+
+.wrap {
+  width: min(var(--wide), calc(100% - 2.5rem));
+  margin-inline: auto;
+}
+
+.section {
+  scroll-margin-top: 4rem;
+}
+
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.section-title {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  line-height: 1.2;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ---------- Drawings ---------- */
+.drawing {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  color: var(--ink);
+}
+
+.drawing text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  fill: currentColor;
+  paint-order: stroke fill;
+  stroke: var(--plate);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.drawing .on-sheet text {
+  stroke: var(--sheet);
+}
+
+.drawing .t-small {
+  font-size: 9.5px;
+  fill: var(--muted);
+}
+
+.drawing .t-strong {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.drawing .t-accent {
+  fill: var(--accent);
+}
+
+.drawing .t-serif {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.drawing .ln {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.drawing .ln-soft {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.28;
+  stroke-width: 1;
+}
+
+.drawing .ln-bold {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.drawing .ln-accent {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.drawing .dash {
+  stroke-dasharray: 3 3;
+}
+
+.drawing .fill-ink {
+  fill: currentColor;
+}
+
+.drawing .fill-accent {
+  fill: var(--accent);
+}
+
+.drawing .sheet {
+  fill: var(--sheet);
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+.drawing .reveal {
+  opacity: 0;
+  transition: opacity 0.25s var(--ease);
+}
+
+.entry:hover .drawing .reveal,
+.entry:focus-within .drawing .reveal,
+.plate:hover .drawing .reveal {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .drawing .reveal {
+    opacity: 1;
+  }
+}

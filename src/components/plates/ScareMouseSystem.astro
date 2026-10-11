@@ -1,0 +1,63 @@
+---
+// The literal system diagram the case study asks for. Kept plain on purpose:
+// the plate above shows what is measured; this shows what is connected.
+---
+
+<figure class="system">
+  <div class="art">
+    <svg
+      class="drawing"
+      viewBox="0 0 400 180"
+      role="img"
+      aria-label="System diagram: speakers play the stimulus, a load cell senses the animal, an Arduino reads the load cell, and a Raspberry Pi interface runs the trial and logs data."
+    >
+      <defs>
+        <marker id="sm-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="currentColor"></path>
+        </marker>
+      </defs>
+
+      <g class="on-sheet">
+      <rect x="16" y="24" width="86" height="46" class="sheet"></rect>
+      <text x="59" y="45" text-anchor="middle" class="t-strong">SPEAKERS</text>
+      <text x="59" y="58" text-anchor="middle" class="t-small">stimulus</text>
+
+      <rect x="152" y="24" width="96" height="46" class="sheet"></rect>
+      <text x="200" y="45" text-anchor="middle" class="t-strong">LOAD CELL</text>
+      <text x="200" y="58" text-anchor="middle" class="t-small">force</text>
+
+      <rect x="298" y="24" width="86" height="46" class="sheet"></rect>
+      <text x="341" y="45" text-anchor="middle" class="t-strong">ARDUINO</text>
+      <text x="341" y="58" text-anchor="middle" class="t-small">samples</text>
+
+      <rect x="118" y="120" width="164" height="50" class="sheet" style="stroke-width:1.8"></rect>
+      <text x="200" y="141" text-anchor="middle" class="t-strong">RASPBERRY PI</text>
+      <text x="200" y="157" text-anchor="middle" class="t-small">trials · timing · log</text>
+      </g>
+
+      <path d="M102 47 H152" class="ln dash" marker-end="url(#sm-arrow)"></path>
+      <text x="127" y="40" text-anchor="middle" class="t-small">sound</text>
+      <path d="M248 47 H298" class="ln" marker-end="url(#sm-arrow)"></path>
+      <path d="M341 70 V96 H232 V120" class="ln" marker-end="url(#sm-arrow)"></path>
+    </svg>
+  </div>
+  <figcaption>
+    System diagram, simplified. Wiring and trigger paths are not shown.
+  </figcaption>
+</figure>
+
+<style>
+  .system {
+    margin: 1.5rem 0 0;
+  }
+
+  .art {
+    padding: 0.25rem 0;
+  }
+
+  figcaption {
+    margin-top: 0.55rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+</style>

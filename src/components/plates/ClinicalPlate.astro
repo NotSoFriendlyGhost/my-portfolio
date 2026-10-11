@@ -1,0 +1,95 @@
+---
+// Pl. 02 — an intake sheet. Structured rows, one visible gap, a check column.
+// Cell contents are drawn as ghost bars on purpose: no data is shown here.
+
+const f = (n: number) => n.toFixed(1);
+const jitter = (i: number) => {
+  const s = Math.sin(i * 78.233 + 12.9) * 43758.5453;
+  return s - Math.floor(s);
+};
+
+const rows = [84, 108, 132, 156, 180, 204, 228];
+const FLAGGED = 4;
+const cols = [
+  { key: "id", x: 36, min: 8, span: 6 },
+  { key: "baseline", x: 72, min: 22, span: 14 },
+  { key: "treatment", x: 134, min: 22, span: 22 },
+  { key: "response", x: 206, min: 18, span: 18 },
+];
+
+const bars = rows.flatMap((y, r) =>
+  cols
+    .filter((c) => !(r === FLAGGED && c.key === "response"))
+    .map((c, ci) => {
+      const len = c.min + jitter(r * 7 + ci * 3) * c.span;
+      return `M${c.x} ${y - 2} h${f(len)}`;
+    }),
+);
+
+const ticks = rows
+  .map((y, r) => (r === FLAGGED ? "" : `M282 ${y - 2} l3 3 l6 -7`))
+  .join(" ");
+
+const rowRules = rows.map((y) => `M24 ${y + 8} H324`).join(" ");
+---
+
+<svg
+  class="drawing"
+  viewBox="0 0 400 284"
+  role="img"
+  aria-label="A ledger-style intake sheet with columns for id, baseline, treatment and response. Every row has a check mark except one whose response cell is empty and flagged. A stamp reads de-identified, and an arrow leads to an existing model."
+>
+  <!-- the sheet underneath it -->
+  <rect x="30" y="46" width="300" height="210" fill="none" class="ln-soft"></rect>
+  <rect x="24" y="40" width="300" height="210" class="sheet"></rect>
+
+  <!-- the flagged row -->
+  <rect x="24" y={rows[FLAGGED] - 14} width="300" height="22" fill="var(--accent)" opacity="0.08"></rect>
+
+  <g class="on-sheet">
+    <text x="36" y="57" class="t-small t-strong">id</text>
+    <text x="72" y="57" class="t-small t-strong">baseline</text>
+    <text x="134" y="57" class="t-small t-strong">treatment</text>
+    <text x="206" y="57" class="t-small t-strong">response</text>
+    <text x="282" y="57" class="t-small t-strong">valid</text>
+  </g>
+  <path d="M24 64 H324" class="ln-bold"></path>
+  <path d={rowRules} class="ln-soft"></path>
+
+  <path d={bars.join(" ")} stroke="currentColor" stroke-opacity="0.38" stroke-width="3.4" fill="none"></path>
+  <path d={ticks} class="ln"></path>
+
+  <!-- the gap -->
+  <rect
+    x="200"
+    y={rows[FLAGGED] - 12}
+    width="56"
+    height="18"
+    fill="none"
+    stroke="var(--accent)"
+    stroke-width="1.2"
+    stroke-dasharray="3 2"></rect>
+  <circle cx="288" cy={rows[FLAGGED] - 3} r="6.5" fill="none" stroke="var(--accent)" stroke-width="1.2"></circle>
+  <g class="on-sheet">
+    <text x="288" y={rows[FLAGGED]} text-anchor="middle" class="t-serif t-accent" style="font-size:11px">?</text>
+  </g>
+
+  <!-- stamp -->
+  <g transform="translate(262 36) rotate(-6)">
+    <rect x="0" y="-12" width="92" height="18" fill="var(--plate)" stroke="var(--accent)" stroke-width="1.2"></rect>
+    <text x="46" y="0" text-anchor="middle" class="t-accent t-strong" style="font-size:8.5px;stroke:none">DE-IDENTIFIED</text>
+  </g>
+
+  <!-- hand-off -->
+  <path d="M336 150 H345" class="ln"></path>
+  <path d="M352 150 L345 146.5 V153.5 Z" class="fill-ink"></path>
+  <rect x="354" y="130" width="40" height="40" fill="none" class="ln-bold"></rect>
+  <text x="374" y="154" text-anchor="middle" style="stroke:var(--plate)">model</text>
+  <text x="374" y="184" text-anchor="middle" class="t-small">existing</text>
+
+  <text x="24" y="270" class="t-small">structured intake</text>
+
+  <g class="reveal">
+    <text x="150" y="270" class="t-small t-accent">a gap should be visible, not silent</text>
+  </g>
+</svg>

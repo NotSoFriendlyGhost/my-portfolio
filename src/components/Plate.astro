@@ -1,0 +1,37 @@
+---
+import ScareMousePlate from "./plates/ScareMousePlate.astro";
+import ClinicalPlate from "./plates/ClinicalPlate.astro";
+import EchoLensPlate from "./plates/EchoLensPlate.astro";
+import RoboticsPlate from "./plates/RoboticsPlate.astro";
+
+interface Props {
+  kind: "scaremouse" | "clinical" | "echolens" | "robotics";
+  caption: string;
+  /** Adds "Illustration, not data." to the caption. Used on the project pages. */
+  note?: boolean;
+}
+
+const { kind, caption, note = false } = Astro.props;
+---
+
+<figure class="plate">
+  {kind === "scaremouse" && <ScareMousePlate />}
+  {kind === "clinical" && <ClinicalPlate />}
+  {kind === "echolens" && <EchoLensPlate />}
+  {kind === "robotics" && <RoboticsPlate />}
+  <figcaption>{caption}{note && " Illustration, not data."}</figcaption>
+</figure>
+
+<style>
+  .plate {
+    margin: 0;
+  }
+
+  figcaption {
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--muted);
+    max-width: 32rem;
+  }
+</style>
