@@ -1,6 +1,7 @@
 ---
 import { site } from "../data/site";
 import { withBase } from "../lib/url";
+import Juggle from "./Juggle.astro";
 
 const [first, ...rest] = site.name.split(" ");
 const photo = site.heroPhoto;
@@ -8,102 +9,150 @@ const photo = site.heroPhoto;
 
 <section class="hero wrap" aria-label="Introduction">
   <div class="copy">
-    <h1>{first} <em>{rest.join(" ")}</em></h1>
+    <figure class="photo">
+      <img
+        src={withBase(photo.src)}
+        alt={photo.alt}
+        width={photo.width}
+        height={photo.height}
+        fetchpriority="high"
+      />
+      <figcaption>
+        <span>Class of 2030</span>
+        <span>{site.location}</span>
+      </figcaption>
+    </figure>
+    <div class="text">
+      <p class="bill">Now appearing</p>
+      <h1>{first} <em>{rest.join(" ")}</em></h1>
 
-    <p class="intro">
-      Yale undergraduate (Class of 2030), prospective Computer Science and Statistics &amp; Data
-      Science. I like the point where something has to work outside a theory or a simulation.
-    </p>
-    <p class="more">
-      That has meant tinnitus research tools at Loyola, lymphoma data software at the University of
-      Turin, an assistive reading prototype, and competitive VEX robotics.
-    </p>
+      <p class="intro">
+        Yale undergraduate (Class of 2030), prospective Computer Science and Statistics &amp; Data
+        Science. I build research tools and robot code.
+      </p>
+      <p class="fact">I like running, juggling, and running and juggling at the same time.</p>
+      <p class="more">
+        Tinnitus research at Loyola, lymphoma data software at the University of Turin, an assistive
+        reading prototype, and competitive VEX robotics.
+      </p>
+    </div>
   </div>
 
-  <figure class="photo">
-    <img
-      src={withBase(photo.src)}
-      alt={photo.alt}
-      width={photo.width}
-      height={photo.height}
-      fetchpriority="high"
-    />
-  </figure>
+  <div class="stage">
+    <Juggle />
+  </div>
 </section>
 
 <style>
   .hero {
     display: grid;
-    gap: 2rem;
+    gap: 2.25rem;
     padding: clamp(2rem, 6vh, 3.5rem) 0 2.5rem;
-    align-items: start;
+    align-items: center;
+  }
+
+  .bill {
+    margin: 0 0 0.75rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
   }
 
   h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-optical-sizing: auto;
-    font-size: clamp(2.7rem, 9vw, 4.6rem);
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 1.02;
+    font-size: clamp(2.6rem, 9vw, 4.8rem);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
   }
 
   h1 em {
-    font-style: italic;
-    font-weight: 400;
+    font-style: normal;
+    color: var(--red);
+  }
+
+  .copy {
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
   }
 
   .intro {
-    margin: 1.5rem 0 0;
-    max-width: 30rem;
-    font-size: 1.2rem;
+    margin: 1.4rem 0 0;
+    max-width: 34rem;
+    font-size: 1.15rem;
+    line-height: 1.5;
+  }
+
+  .fact {
+    margin: 0.85rem 0 0;
+    max-width: 34rem;
+    font-size: 1.15rem;
     line-height: 1.5;
   }
 
   .more {
-    margin: 1rem 0 0;
-    max-width: 30rem;
+    margin: 0.9rem 0 0;
+    max-width: 34rem;
     color: var(--ink-soft);
+  }
+
+  .stage {
+    display: grid;
+    justify-items: center;
   }
 
   .photo {
     margin: 0;
-    max-width: 26rem;
+    width: min(16rem, 72%);
   }
 
   .photo img {
+    display: block;
     width: 100%;
     height: auto;
     aspect-ratio: 1;
     object-fit: cover;
-    object-position: 50% 20%;
-    filter: grayscale(0.35) contrast(1.03);
-    transition: filter 0.35s var(--ease);
+    object-position: center 18%;
+    border-radius: 0.2rem;
+    border: 3px solid var(--ink);
+    box-shadow: 0 0 0 1px var(--accent), 0 1rem 2rem rgba(0, 0, 0, 0.4);
+    filter: saturate(1.05) contrast(1.02);
   }
 
-  .photo:hover img,
-  .photo:focus-within img {
-    filter: grayscale(0) contrast(1.02);
+  .photo figcaption {
+    display: grid;
+    gap: 0.15rem;
+    margin-top: 0.55rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  @media (min-width: 720px) {
+    .copy {
+      grid-template-columns: 12.5rem minmax(0, 1fr);
+      column-gap: 1.5rem;
+    }
+
+    .photo {
+      width: 12.5rem;
+    }
   }
 
   @media (min-width: 900px) {
     .hero {
-      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
-      column-gap: 4.5rem;
-      padding-top: clamp(3rem, 9vh, 5rem);
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      column-gap: 3rem;
+      padding-top: clamp(2.5rem, 8vh, 4.5rem);
     }
 
-    .photo {
-      margin-top: 2rem;
-      width: min(100%, 22rem);
+    .stage {
       justify-self: end;
-    }
-  }
-
-  @media (hover: none) {
-    .photo img {
-      filter: grayscale(0.15) contrast(1.02);
+      width: min(100%, 26rem);
     }
   }
 </style>

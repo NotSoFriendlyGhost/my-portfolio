@@ -1,18 +1,20 @@
-/* Type: Fraunces for headings (soft optical-size serif), Public Sans for reading,
-   IBM Plex Mono only inside the technical drawings. */
+/* Stage lights and juggling props. Limelight for the poster voice,
+   Public Sans for reading, Plex Mono inside the technical drawings. */
 :root {
-  --paper: #f2f2ef;
-  --ink: #141414;
-  --ink-soft: #3a3a38;
-  --muted: #6a6a66;
-  --rule: #d4d4cf;
-  --rule-strong: #9a9a94;
-  --accent: #0e5c4c;
-  --accent-soft: rgba(14, 92, 76, 0.12);
-  --plate: #f2f2ef;
-  --sheet: #fafaf7;
+  --paper: #130f0c;
+  --stage: #1a1410;
+  --ink: #f3ebe1;
+  --ink-soft: #c9bdb0;
+  --muted: #8f8376;
+  --rule: #3d3229;
+  --rule-strong: #5c4f42;
+  --accent: #f0a31a;
+  --accent-soft: rgba(240, 163, 26, 0.16);
+  --red: #e24a3b;
+  --plate: #1c1511;
+  --sheet: #2a211a;
 
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-display: "Limelight", "Copperplate Gothic", Georgia, serif;
   --font: "Public Sans", "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
@@ -53,7 +55,10 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--paper);
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(240, 163, 26, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(226, 74, 59, 0.08), transparent 50%),
+    var(--paper);
   color: var(--ink);
   font-family: var(--font);
   font-size: var(--text);
@@ -87,7 +92,7 @@ button:focus-visible {
   top: -4rem;
   z-index: 100;
   padding: 0.45rem 0.7rem;
-  background: var(--ink);
+  background: var(--accent);
   color: var(--paper);
 }
 
@@ -107,21 +112,14 @@ button:focus-visible {
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 .section-title {
   margin: 0 0 0.6rem;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-  line-height: 1.2;
-}
-
-.note {
-  margin: 0;
-  font-size: var(--text-small);
-  line-height: 1.45;
-  color: var(--muted);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.15;
 }
 
 /* ---------- Drawings ---------- */
@@ -164,7 +162,7 @@ h3 {
 
 .drawing .t-serif {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 14px;
   letter-spacing: 0;
 }

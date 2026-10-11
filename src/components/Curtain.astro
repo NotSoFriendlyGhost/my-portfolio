@@ -1,0 +1,113 @@
+---
+/** Velvet curtains. Scrolling parts them; the page stays at the top until they are open. */
+---
+
+<div class="curtains" data-curtains aria-hidden="true">
+  <div class="glow" data-curtain-glow></div>
+  <div class="panel left" data-curtain="left"></div>
+  <div class="panel right" data-curtain="right"></div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-curtains]");
+  const left = root?.querySelector<HTMLElement>('[data-curtain="left"]');
+  const right = root?.querySelector<HTMLElement>('[data-curtain="right"]');
+  const glow = root?.querySelector<HTMLElement>("[data-curtain-glow]");
+  const pin = document.querySelector<HTMLElement>("[data-pin]");
+  const footer = document.querySelector<HTMLElement>("footer");
+  if (!root || !left || !right || !glow || !pin) throw new Error("curtain mount missing");
+
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function place() {
+    const travel = Math.min(560, Math.max(window.innerHeight * 0.62, 340));
+    const y = Math.max(0, window.scrollY);
+    const opened = reduce ? 1 : Math.min(1, y / travel);
+    const parted = opened * 120;
+    left.style.transform = `translate3d(${-parted}%, 0, 0)`;
+    right.style.transform = `translate3d(${parted}%, 0, 0)`;
+    glow.style.opacity = String(1 - opened);
+    root.classList.toggle("away", opened >= 0.995);
+
+    const hold = reduce ? 0 : Math.min(y, travel);
+    const shift = `translate3d(0, ${hold}px, 0)`;
+    pin.style.transform = shift;
+    if (footer) footer.style.transform = shift;
+  }
+
+  place();
+  window.addEventListener("scroll", place, { passive: true });
+  window.addEventListener("resize", place);
+</script>
+
+<style>
+  .curtains {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .curtains.away {
+    visibility: hidden;
+  }
+
+  .glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 28% 46% at 50% 46%, rgba(255, 186, 110, 0.42), transparent 68%),
+      radial-gradient(ellipse 16% 22% at 42% 38%, rgba(255, 228, 180, 0.35), transparent 70%),
+      radial-gradient(ellipse 14% 20% at 58% 40%, rgba(255, 150, 90, 0.28), transparent 72%);
+  }
+
+  .panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 72%;
+    background-color: #3a0c14;
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 12% 82%, rgba(0, 0, 0, 0.55)),
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(180, 60, 70, 0.28) 7%,
+        rgba(0, 0, 0, 0.35) 16%,
+        rgba(210, 90, 90, 0.22) 27%,
+        rgba(0, 0, 0, 0.4) 38%,
+        rgba(190, 70, 75, 0.2) 52%,
+        rgba(0, 0, 0, 0.45) 63%,
+        rgba(200, 80, 85, 0.18) 76%,
+        rgba(0, 0, 0, 0.45) 100%
+      );
+  }
+
+  .left {
+    left: 0;
+  }
+
+  .right {
+    right: 0;
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 12% 82%, rgba(0, 0, 0, 0.55)),
+      linear-gradient(
+        -90deg,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(180, 60, 70, 0.28) 7%,
+        rgba(0, 0, 0, 0.35) 16%,
+        rgba(210, 90, 90, 0.22) 27%,
+        rgba(0, 0, 0, 0.4) 38%,
+        rgba(190, 70, 75, 0.2) 52%,
+        rgba(0, 0, 0, 0.45) 63%,
+        rgba(200, 80, 85, 0.18) 76%,
+        rgba(0, 0, 0, 0.45) 100%
+      );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .curtains {
+      display: none;
+    }
+  }
+</style>

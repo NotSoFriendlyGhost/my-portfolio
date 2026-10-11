@@ -6,8 +6,7 @@ import { withBase } from "../lib/url";
 
 <section class="section" id="work">
   <div class="wrap">
-    <h2 class="section-title">Work</h2>
-    <p class="note">Hover a drawing for the margin notes. The drawings are illustrations, not real data.</p>
+    <h2 class="section-title">On the bill</h2>
 
     <div class="archive">
       {projects.map((project) => (
@@ -72,8 +71,11 @@ import { withBase } from "../lib/url";
 
   h3 {
     margin: 0;
-    font-size: clamp(1.6rem, 3vw, 2rem);
-    line-height: 1.15;
+    font-family: var(--font);
+    font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
 
   h3 a {
@@ -88,9 +90,17 @@ import { withBase } from "../lib/url";
   }
 
   .cat {
-    margin: 0.2rem 0 0;
-    font-size: 0.9rem;
-    color: var(--muted);
+    margin: 0.35rem 0 0;
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--paper);
+    background: var(--accent);
+  }
+
+  .section-title {
+    color: var(--accent);
   }
 
   .summary {

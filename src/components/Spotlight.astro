@@ -1,0 +1,46 @@
+---
+/** Soft stage light that follows the pointer across the page. */
+---
+
+<div class="spotlight" data-spotlight aria-hidden="true"></div>
+
+<script>
+  const spot = document.querySelector<HTMLElement>("[data-spotlight]");
+  if (spot && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const place = (x: number, y: number) => {
+      spot.style.setProperty("--x", `${x}px`);
+      spot.style.setProperty("--y", `${y}px`);
+    };
+
+    place(window.innerWidth * 0.5, window.innerHeight * 0.35);
+    window.addEventListener(
+      "pointermove",
+      (event) => {
+        if (event.pointerType === "touch") return;
+        place(event.clientX, event.clientY);
+      },
+      { passive: true },
+    );
+  }
+</script>
+
+<style>
+  .spotlight {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(
+      circle 14rem at var(--x, 50%) var(--y, 35%),
+      rgba(255, 214, 150, 0.22),
+      rgba(240, 163, 26, 0.08) 38%,
+      transparent 68%
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spotlight {
+      display: none;
+    }
+  }
+</style>

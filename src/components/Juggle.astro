@@ -1,0 +1,583 @@
+---
+/** Interactive cascade juggle with pointer and keyboard controls. */
+---
+
+<div class="juggle" data-juggle>
+  <div class="ring">
+    <canvas
+      tabindex="0"
+      role="img"
+      aria-label="Animated juggling balls. Drag a ball, click the ring to add one, or use the controls below."
+    ></canvas>
+  </div>
+  <div class="controls">
+    <button type="button" data-add>Add a ball</button>
+    <button type="button" data-reset>Reset</button>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-juggle]");
+  const canvas = root?.querySelector("canvas");
+  if (!root || !canvas) throw new Error("juggle mount missing");
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("2d context missing");
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const colors = ["#f0a31a", "#e24a3b", "#f3ebe1", "#5ec4b6", "#c77dff", "#f28b50", "#9ad14b"];
+
+  type Ball = { x: number; y: number; r: number; color: string; loose: boolean };
+  type Cm = { x: number; z: number };
+
+  /**
+   * Siteswap timing, same model as Juggling Lab:
+   * odd counts cascade (throws cross), even counts fountain (each hand keeps its own columns).
+   * Throws leave from inside the hand and land further out, so passing balls miss each other.
+   */
+  const G = 980;
+  const SCOOP = 0.4;
+
+  let balls: Ball[] = [];
+  let w = 0;
+  let h = 0;
+  let dpr = 1;
+  let pointerState = { down: false, grab: -1 };
+  let raf = 0;
+  let simTime = 0;
+
+  type Pattern = {
+    cascade: boolean;
+    pose: (ball: number, time: number) => Cm & { held: boolean; hand: number };
+    hand: (hand: number, time: number) => Cm & { held: boolean };
+    project: (cm: Cm & { held?: boolean }) => { x: number; y: number; r: number; held: boolean };
+  };
+
+  let pattern: Pattern;
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = Math.max(280, Math.floor(rect.width));
+    h = Math.max(280, Math.floor(rect.height));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function mod(a: number, m: number) {
+    return ((a % m) + m) % m;
+  }
+
+  function createPattern(count: number): Pattern {
+    const seq = count === 1 ? [3, 0, 0] : [count];
+    const value = count === 1 ? 3 : count;
+    const cascade = count % 2 === 1;
+    const dwellBeats = value <= 2 ? 0.6 : 1.3;
+    const bps = 1.7 + 0.58 * value;
+    const beat = 1 / bps;
+
+    const queued = new Map<number, number>();
+    let spawned = 0;
+    const thrown: { ball: number; beat: number; value: number }[] = [];
+    const limit = seq.length * (count + 3) * 8;
+    for (let beatIndex = 0; beatIndex < limit; beatIndex++) {
+      const throwValue = seq[beatIndex % seq.length];
+      if (!throwValue) continue;
+      let ball = queued.get(beatIndex);
+      if (ball === undefined) {
+        if (spawned >= count) continue;
+        ball = spawned++;
+      }
+      queued.set(beatIndex + throwValue, ball);
+      thrown.push({ ball, beat: beatIndex, value: throwValue });
+    }
+
+    const orbits = Array.from({ length: count }, (_, ball) => {
+      const mine = thrown.filter((t) => t.ball === ball);
+      return { beat0: mine[0].beat, period: mine[1].beat - mine[0].beat, value: mine[0].value };
+    });
+
+    const slot = Array(count).fill(0);
+    if (!cascade) {
+      const groups: number[][] = [[], []];
+      orbits.forEach((orbit, ball) => groups[orbit.beat0 % 2].push(ball));
+      for (const hand of [0, 1]) {
+        groups[hand].sort((a, b) => orbits[a].beat0 - orbits[b].beat0);
+        groups[hand].forEach((ball, index) => {
+          slot[ball] = index;
+        });
+      }
+    }
+
+    function anchor(hand: number, kind: "throw" | "catch", ballSlot: number) {
+      if (cascade) {
+        const sign = hand === 0 ? -1 : 1;
+        return { x: sign * (kind === "throw" ? 10 : 32.5), z: 0 };
+      }
+      const sign = hand === 0 ? -1 : 1;
+      return { x: sign * (16 + ballSlot * 18), z: 0 };
+    }
+
+    function flightVelocity(from: Cm, to: Cm, flight: number) {
+      return {
+        x: (to.x - from.x) / flight,
+        z: (to.z - from.z) / flight + 0.5 * G * flight,
+      };
+    }
+
+    function hermite(p0: Cm, v0: Cm, p1: Cm, v1: Cm, duration: number, u: number): Cm {
+      const h00 = 2 * u ** 3 - 3 * u ** 2 + 1;
+      const h10 = u ** 3 - 2 * u ** 2 + u;
+      const h01 = -2 * u ** 3 + 3 * u ** 2;
+      const h11 = u ** 3 - u ** 2;
+      return {
+        x: h00 * p0.x + h10 * duration * v0.x + h01 * p1.x + h11 * duration * v1.x,
+        z: h00 * p0.z + h10 * duration * v0.z + h01 * p1.z + h11 * duration * v1.z,
+      };
+    }
+
+    function pose(ball: number, time: number) {
+      const orbit = orbits[ball];
+      const beatNow = time / beat;
+      let cycle = Math.floor((beatNow - orbit.beat0) / orbit.period);
+      let into = beatNow - orbit.beat0 - cycle * orbit.period;
+      if (into < 0) {
+        into += orbit.period;
+        cycle -= 1;
+      }
+      const throwBeat = orbit.beat0 + cycle * orbit.period;
+      const from = mod(throwBeat, 2);
+      const to = mod(from + orbit.value, 2);
+      const flightBeats = orbit.value - dwellBeats;
+      const flight = flightBeats * beat;
+      const dwell = dwellBeats * beat;
+      const release = anchor(from, "throw", slot[ball]);
+      const catchPoint = anchor(to, "catch", slot[ball]);
+      const nextRelease = anchor(to, "throw", slot[ball]);
+
+      if (into < flightBeats) {
+        const t = (into / flightBeats) * flight;
+        const vz = (catchPoint.z - release.z) / flight + 0.5 * G * flight;
+        return {
+          x: release.x + (catchPoint.x - release.x) * (t / flight),
+          z: release.z + vz * t - 0.5 * G * t * t,
+          held: false,
+          hand: to,
+        };
+      }
+
+      const u = (into - flightBeats) / dwellBeats;
+      const incoming = flightVelocity(release, catchPoint, flight);
+      incoming.z -= G * flight;
+      const nextCatch = anchor(mod(to + orbit.value, 2), "catch", slot[ball]);
+      const outgoing = flightVelocity(nextRelease, nextCatch, flight);
+      const scooped = hermite(
+        catchPoint,
+        { x: incoming.x * SCOOP, z: incoming.z * SCOOP },
+        nextRelease,
+        { x: outgoing.x * SCOOP, z: outgoing.z * SCOOP },
+        dwell,
+        u,
+      );
+      return { ...scooped, held: true, hand: to };
+    }
+
+    const handThrows = [0, 1].map((hand) => {
+      const beats: number[] = [];
+      for (let beatIndex = 0; beatIndex < seq.length * 12; beatIndex++) {
+        if (beatIndex % 2 !== hand || !seq[beatIndex % seq.length]) continue;
+        beats.push(beatIndex);
+      }
+      return beats;
+    });
+
+    function ballAt(beatIndex: number) {
+      return orbits.findIndex((orbit) => mod(beatIndex - orbit.beat0, orbit.period) === 0);
+    }
+
+    function handAt(hand: number, time: number): Cm & { held: boolean } {
+      const beats = handThrows[hand];
+      if (beats.length < 2) return { ...anchor(hand, "catch", 0), held: false };
+      const interval = beats[1] - beats[0];
+      const beatNow = time / beat;
+      let throwBeat = beats[0] + Math.floor((beatNow - beats[0]) / interval) * interval;
+      if (beatNow < throwBeat) throwBeat -= interval;
+      const nextThrow = throwBeat + interval;
+      const catchBeat = nextThrow - dwellBeats;
+      if (beatNow >= catchBeat) {
+        const ball = ballAt(nextThrow);
+        if (ball >= 0) {
+          const carried = pose(ball, time);
+          return { x: carried.x, z: carried.z, held: true };
+        }
+      }
+      const from = anchor(hand, "throw", slot[ballAt(throwBeat)] ?? 0);
+      const to = anchor(hand, "catch", slot[ballAt(nextThrow)] ?? 0);
+      const reach = Math.min(interval - dwellBeats, 0.85);
+      const u = Math.min(1, Math.max(0, (beatNow - throwBeat) / reach));
+      const s = u * u * (3 - 2 * u);
+      return { x: from.x + (to.x - from.x) * s, z: from.z + (to.z - from.z) * s, held: false };
+    }
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    const span = orbits[0].period * beat * 2;
+    for (let step = 0; step <= 96; step++) {
+      const time = (step / 96) * span;
+      for (let ball = 0; ball < count; ball++) {
+        const p = pose(ball, time);
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minZ = Math.min(minZ, p.z);
+        maxZ = Math.max(maxZ, p.z);
+      }
+    }
+    minX -= 8;
+    maxX += 8;
+    minZ -= 7;
+    maxZ += 7;
+
+    function project(cm: Cm & { held?: boolean }) {
+      const scale = Math.min((w * 0.84) / (maxX - minX), (h * 0.74) / (maxZ - minZ));
+      return {
+        x: w * 0.5 + (cm.x - (minX + maxX) / 2) * scale,
+        y: h * 0.8 - (cm.z - minZ) * scale,
+        r: 4.6 * scale,
+        held: !!cm.held,
+      };
+    }
+
+    return { cascade, pose, hand: handAt, project };
+  }
+
+  function snap(index: number) {
+    const ball = balls[index];
+    if (!ball || ball.loose || pointerState.grab === index) return;
+    const placed = pattern.project(pattern.pose(index, simTime));
+    ball.x = placed.x;
+    ball.y = placed.y;
+    ball.r = placed.r;
+  }
+
+  function setCount(count: number) {
+    const next = Math.max(1, Math.min(7, count));
+    while (balls.length < next) {
+      const index = balls.length;
+      balls.push({
+        x: w * 0.5,
+        y: h * 0.55,
+        r: 12,
+        color: colors[index % colors.length],
+        loose: false,
+      });
+    }
+    balls.length = next;
+    pattern = createPattern(next);
+    root.dataset.pattern = pattern.cascade ? "cascade" : "fountain";
+    if (pointerState.grab >= next) pointerState.grab = -1;
+    for (let i = 0; i < balls.length; i++) snap(i);
+  }
+
+  function reset() {
+    pointerState = { down: false, grab: -1 };
+    setCount(3);
+  }
+
+  function addBall() {
+    if (balls.length >= 7) return -1;
+    setCount(balls.length + 1);
+    return balls.length - 1;
+  }
+
+  function pointer(e: PointerEvent) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function hit(x: number, y: number) {
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const b = balls[i];
+      const dx = x - b.x;
+      const dy = y - b.y;
+      if (dx * dx + dy * dy <= (b.r + 8) * (b.r + 8)) return i;
+    }
+    return -1;
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    const p = pointer(e);
+    pointerState = { down: true, grab: hit(p.x, p.y) };
+    canvas.setPointerCapture(e.pointerId);
+    if (pointerState.grab < 0) {
+      const addedIndex = addBall();
+      if (addedIndex >= 0) {
+        pointerState.grab = addedIndex;
+        balls[addedIndex].x = p.x;
+        balls[addedIndex].y = p.y;
+      }
+    }
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    const p = pointer(e);
+    if (pointerState.down && pointerState.grab >= 0) {
+      const b = balls[pointerState.grab];
+      b.x = p.x;
+      b.y = p.y;
+    }
+  });
+
+  function endPointer(e: PointerEvent) {
+    if (pointerState.grab >= 0) balls[pointerState.grab].loose = true;
+    pointerState.down = false;
+    pointerState.grab = -1;
+    try {
+      canvas.releasePointerCapture(e.pointerId);
+    } catch {
+      /* already released */
+    }
+  }
+
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+
+  root.querySelector<HTMLButtonElement>("[data-add]")?.addEventListener("click", () => addBall());
+  root.querySelector<HTMLButtonElement>("[data-reset]")?.addEventListener("click", () => reset());
+  canvas.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      addBall();
+    }
+    if (e.key.toLowerCase() === "r") reset();
+  });
+
+  let last = performance.now();
+
+  function step(now: number) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    simTime += dt * (reduceMotion ? 0.35 : 1);
+
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      const target = pattern.project(pattern.pose(i, simTime));
+      b.r = target.r;
+      if (pointerState.grab === i) continue;
+      if (b.loose) {
+        const k = 1 - Math.exp(-14 * dt);
+        b.x += (target.x - b.x) * k;
+        b.y += (target.y - b.y) * k;
+        if (Math.hypot(target.x - b.x, target.y - b.y) < 0.8) b.loose = false;
+      } else {
+        b.x = target.x;
+        b.y = target.y;
+      }
+    }
+  }
+
+  function drawHand(x: number, y: number, r: number, side: number, underBall: boolean) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(side === 0 ? -1 : 1, 1);
+    ctx.fillStyle = "#e8b48c";
+
+    const fingerW = r * 0.2;
+    const gap = r * 0.05;
+    const lengths = [0.62, 0.78, 0.7, 0.52];
+    const span = lengths.length * fingerW + (lengths.length - 1) * gap;
+    const start = -span / 2;
+
+    if (underBall) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.02, span / 2 + r * 0.04, r * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      lengths.forEach((length, i) => {
+        ctx.beginPath();
+        ctx.roundRect(start + i * (fingerW + gap), -r * length, fingerW, r * length + r * 0.12, fingerW / 2);
+        ctx.fill();
+      });
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.62, -r * 0.04, r * 0.15, r * 0.26, -0.85, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      lengths.forEach((length, i) => {
+        ctx.beginPath();
+        ctx.roundRect(start + i * (fingerW + gap), -r * length, fingerW, r * length + r * 0.2, fingerW / 2);
+        ctx.fill();
+      });
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.68, r * 0.12, r * 0.16, r * 0.3, -0.85, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.08, r * 0.58, r * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(-r * 0.18, r * 0.32, r * 0.36, r * 0.32, r * 0.1);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // circus ring
+    const floor = h * 0.82;
+    ctx.strokeStyle = "rgba(240,163,26,0.35)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, floor, w * 0.38, h * 0.045, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(226,74,59,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, floor, w * 0.34, h * 0.035, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // soft spotlight on the ring
+    const g = ctx.createRadialGradient(w * 0.5, h * 0.25, 10, w * 0.5, h * 0.5, h * 0.55);
+    g.addColorStop(0, "rgba(240,163,26,0.12)");
+    g.addColorStop(1, "rgba(240,163,26,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    for (const side of [0, 1]) {
+      const place = pattern.project(pattern.hand(side, simTime));
+      let drop = 0;
+      let heldBall: Ball | null = null;
+      const tip = place.r * 0.82;
+      for (const b of balls) {
+        const dx = Math.abs(place.x - b.x);
+        if (dx > b.r + place.r * 0.9) continue;
+        const needed = b.y + b.r - (place.y - tip) + 3;
+        if (needed > drop) {
+          drop = needed;
+          heldBall = b;
+        }
+      }
+      const underBall = !!heldBall;
+      const shoulderX = side === 0 ? w * 0.3 : w * 0.7;
+      const shoulderY = h * 0.98;
+      const handY = place.y + drop;
+      // Hide the sleeve tip inside the ball so no brown stub shows under the palm.
+      const wristY = underBall && heldBall ? heldBall.y + heldBall.r * 0.15 : handY + place.r * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(shoulderX, shoulderY);
+      ctx.quadraticCurveTo((shoulderX + place.x) / 2, Math.max(wristY, h * 0.78), place.x, wristY);
+      ctx.strokeStyle = "#4a3028";
+      ctx.lineWidth = underBall ? place.r * 0.55 : place.r * 0.95;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      drawHand(place.x, handY, place.r, side, underBall);
+    }
+
+    const stacked = [...balls].sort((a, b) => a.y - b.y);
+    for (const b of stacked) {
+      const shade = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, 2, b.x, b.y, b.r);
+      shade.addColorStop(0, "#fff6e8");
+      shade.addColorStop(0.35, b.color);
+      shade.addColorStop(1, "#2a1208");
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = shade;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function loop(now: number) {
+    step(now);
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+
+  resize();
+  reset();
+  draw();
+  raf = requestAnimationFrame(loop);
+
+  const observer = new ResizeObserver(() => {
+    resize();
+    draw();
+  });
+  observer.observe(root);
+
+  window.addEventListener(
+    "pagehide",
+    () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    },
+    { once: true },
+  );
+</script>
+
+<style>
+  .juggle {
+    width: 100%;
+    max-width: 26rem;
+  }
+
+  .ring {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(240, 163, 26, 0.1), transparent 55%),
+      var(--stage);
+    border: 1px solid var(--rule);
+    box-shadow:
+      inset 0 0 0 6px rgba(240, 163, 26, 0.08),
+      0 0 60px rgba(240, 163, 26, 0.08);
+    overflow: clip;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  canvas:active {
+    cursor: grabbing;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  button {
+    appearance: none;
+    border: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--ink-soft);
+    padding: 0.35rem 0.65rem;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  button:hover,
+  button:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  @media (max-width: 440px) {
+    .juggle {
+      max-width: 21rem;
+    }
+  }
+</style>
