@@ -31,11 +31,11 @@ export const projects: Project[] = [
     slug: "scaremouse",
     number: "01",
     title: "ScareMouse",
-    category: "Research instrumentation",
+    category: "Tinnitus research · Loyola University Chicago",
     summary:
-      "ScareMouse is an open-source system for measuring acoustic startle responses in mice, built for tinnitus research as an alternative to proprietary equipment. It uses a load cell, speakers, Arduino-based hardware, and a Raspberry Pi interface. I worked on the software and hardware coordination, including synchronization, signal processing, and automated data collection.",
+      "At Loyola University Chicago I worked on ScareMouse, an open-source system for measuring acoustic startle responses in mice for tinnitus research. I designed Arduino hardware to track how mice respond to sound, and built a touchscreen GUI on a Raspberry Pi so researchers can start an experiment and view the data.",
     intro:
-      "An open-source system for measuring acoustic startle responses in mice, built for tinnitus research as an alternative to proprietary equipment.",
+      "An open-source startle-response system for tinnitus research at Loyola University Chicago.",
     diagram: "scaremouse",
     plateCaption: "A startle response plotted against the sound that caused it.",
     photo: {
@@ -58,20 +58,20 @@ export const projects: Project[] = [
         heading: "What it does",
         paragraphs: [
           "ScareMouse plays a sudden loud sound for a mouse and measures how strongly it flinches. That reflex is the acoustic startle response, and it can be used to evaluate tinnitus in mice. A load cell picks up the movement, speakers play the sound, and a Raspberry Pi interface runs the session and records the data.",
-          "Equipment for this exists, but it is proprietary. ScareMouse is meant to be an open-source alternative, so the design can be inspected and changed.",
+          "I built this as a tinnitus research intern at Loyola University Chicago (May 2023–September 2025). Equipment for this exists, but it is proprietary. ScareMouse is meant to be an open-source alternative.",
         ],
       },
       {
         heading: "How the pieces fit",
         paragraphs: [
-          "The speakers play the stimulus. The load cell measures the response, and the Arduino-based hardware reads it. The Raspberry Pi interface ties these together and handles the session. The code for both the interface and the Arduino side is on GitHub.",
+          "The speakers play the stimulus. The load cell measures the response, and Arduino-based hardware reads it. A Raspberry Pi with a touchscreen GUI ties these together so someone can start a session and look at the data without digging through scripts. The code for both the interface and the Arduino side is on GitHub.",
         ],
         figure: "scaremouse-system",
       },
       {
         heading: "What I worked on",
         paragraphs: [
-          "My part was software and hardware coordination. That meant synchronizing the audio with the measurements, processing the load cell signal, and automating data collection.",
+          "I designed the Arduino side that tracks the response to sound, and developed the Raspberry Pi touchscreen GUI for running experiments and viewing data. That also meant coordinating the audio with the measurements and keeping the data collection automatic enough to reuse.",
         ],
       },
       {
@@ -87,11 +87,11 @@ export const projects: Project[] = [
     slug: "clinical-data-interface",
     number: "02",
     title: "Clinical research data interface",
-    category: "Research software",
+    category: "Lymphoma research · University of Turin",
     summary:
-      "A Python interface for collecting and preprocessing de-identified lymphoma treatment-response data. The data then goes into an existing machine-learning model. The aim was a more structured workflow that researchers could use without much friction.",
+      "At the University of Turin I built a GUI for collecting lymphoma patient data, with Python handling spreadsheet automation and MySQL storage. The cleaned data feeds an existing AI classifier used in treatment-response research.",
     intro:
-      "A Python interface for collecting and preprocessing de-identified lymphoma treatment-response data for a machine-learning research workflow.",
+      "A data-collection GUI and Python pipeline for lymphoma research at the University of Turin.",
     diagram: "clinical",
     plateCaption: "An intake sheet with one missing value.",
     // TODO: add the repository link here if it can be shared.
@@ -99,19 +99,20 @@ export const projects: Project[] = [
       {
         heading: "What it does",
         paragraphs: [
-          "This is a Python interface for a machine-learning research workflow on lymphoma treatment response. It collects structured, de-identified data, preprocesses it, and passes it to an existing predictive model.",
+          "This is a research software tool for lymphoma treatment-response work. A GUI collects structured patient data. Python stores and prepares that data with spreadsheet automation and MySQL, then hands it to an existing AI classifier used in the lab's research.",
+          "I built this as a lymphoma research intern at the University of Turin (June 2024–December 2025).",
         ],
       },
       {
         heading: "What I worked on",
         paragraphs: [
-          "I worked on the interface and the preprocessing between data collection and the model. I did not build the predictive model, and the interface does not make clinical decisions. It prepares data for research.",
+          "I developed the data-collection GUI and the Python side that stores and prepares the data. I did not build the predictive model itself, and the interface does not make clinical decisions. It prepares data for research.",
         ],
       },
       {
         heading: "What I was aiming for",
         paragraphs: [
-          "The goal was a workflow that was more structured and easier for researchers to use. All of the data is de-identified.",
+          "The goal was a workflow that was more structured and easier for researchers to use, instead of a pile of one-off scripts.",
         ],
       },
     ],
@@ -153,11 +154,11 @@ export const projects: Project[] = [
     slug: "robotics",
     number: "04",
     title: "Competitive robotics",
-    category: "VEX robotics, C++",
+    category: "VEX robotics · C++",
     summary:
-      "I write C++ for competitive VEX robots. Most of it is autonomous navigation, odometry, and PID control. The code only works if it fits the physical robot, so the software and the robot's design have to be worked out together.",
+      "I write C++ for competitive VEX robots: autonomous navigation, odometry, and PID control. Our team was Virtual Skills State Champion and a World Finalist. The code only works if it fits the physical robot, so the software and the robot's design have to be worked out together.",
     intro:
-      "C++ for competitive VEX robots, mostly autonomous navigation, odometry, and PID control.",
+      "C++ for competitive VEX robots. Virtual Skills State Champion and World Finalist.",
     diagram: "robotics",
     plateCaption: "A planned path, the path actually driven, and the gap between them.",
     photo: {
@@ -180,6 +181,12 @@ export const projects: Project[] = [
         heading: "What the code does",
         paragraphs: [
           "Odometry keeps track of where the robot is on the field by adding up small movements from its sensors. Autonomous routines use that position to follow a path. PID control handles the last part, correcting the gap between where the robot is and where it is supposed to be.",
+        ],
+      },
+      {
+        heading: "Competition",
+        paragraphs: [
+          "In VEX we were Virtual Skills State Champion and a World Finalist. The competition code for High Stakes is on GitHub.",
         ],
       },
       {

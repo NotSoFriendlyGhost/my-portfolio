@@ -8,6 +8,7 @@ import { withBase } from "../lib/url";
     <a class="mark" href={withBase()}>{site.name}</a>
     <nav aria-label="Primary">
       <a href={`${withBase()}#work`}>Work</a>
+      <a href={withBase(site.resumeUrl)} target="_blank" rel="noopener noreferrer">Resume</a>
       <a href="#contact">Contact</a>
     </nav>
   </div>

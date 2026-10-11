@@ -1,5 +1,6 @@
 ---
 import { site } from "../data/site";
+import { withBase } from "../lib/url";
 
 const year = new Date().getFullYear();
 ---
@@ -8,9 +9,13 @@ const year = new Date().getFullYear();
   <div class="wrap">
     <a class="email" href={`mailto:${site.email}`}>{site.email}</a>
     <p class="elsewhere">
+      <a href={withBase(site.resumeUrl)} target="_blank" rel="noopener noreferrer">Resume</a>
+      <span aria-hidden="true"> · </span>
       <a href={site.githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
       <span aria-hidden="true"> · </span>
       <a href={site.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      {site.location && <span aria-hidden="true"> · </span>}
+      {site.location && <span>{site.location}</span>}
     </p>
     <p class="small">© {year} {site.name}</p>
   </div>
