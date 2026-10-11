@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import Plate from "../../components/Plate.astro";
 import ScareMouseSystem from "../../components/plates/ScareMouseSystem.astro";
 import { projects, type Project } from "../../data/projects";
+import { withBase } from "../../lib/url";
 
 export function getStaticPaths() {
   return projects.map((project) => ({
@@ -23,7 +24,7 @@ const hasLinks = Boolean(project.repoUrl) || Boolean(project.links?.length);
 <BaseLayout title={`${project.title} · Caspar Chen`} description={project.summary}>
   <article class="case">
     <div class="wrap top">
-      <p class="back"><a href="/#work">Back to selected work</a></p>
+      <p class="back"><a href={`${withBase()}#work`}>Back to selected work</a></p>
       <h1>{project.title}</h1>
       <p class="cat">{project.category}</p>
     </div>
@@ -69,7 +70,7 @@ const hasLinks = Boolean(project.repoUrl) || Boolean(project.links?.length);
         {project.photo && (
           <figure class="photo">
             <img
-              src={project.photo.src}
+              src={withBase(project.photo.src)}
               alt={project.photo.alt}
               width={project.photo.width}
               height={project.photo.height}

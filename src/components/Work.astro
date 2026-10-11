@@ -1,6 +1,7 @@
 ---
 import { projects } from "../data/projects";
 import Plate from "./Plate.astro";
+import { withBase } from "../lib/url";
 ---
 
 <section class="section" id="work">
@@ -13,7 +14,7 @@ import Plate from "./Plate.astro";
         <article class="entry" id={project.slug} tabindex="0">
           <header class="head">
             <h3>
-              <a href={`/projects/${project.slug}`}>{project.title}</a>
+              <a href={withBase(`projects/${project.slug}`)}>{project.title}</a>
             </h3>
             <p class="cat">{project.category}</p>
           </header>
@@ -24,7 +25,7 @@ import Plate from "./Plate.astro";
 
           <div class="body">
             <p class="summary">{project.summary}</p>
-            <a class="more" href={`/projects/${project.slug}`}>
+            <a class="more" href={withBase(`projects/${project.slug}`)}>
               Read more <span aria-hidden="true">→</span>
             </a>
           </div>

@@ -1,12 +1,13 @@
 ---
 import { site } from "../data/site";
+import { withBase } from "../lib/url";
 ---
 
 <header>
   <div class="bar wrap">
-    <a class="mark" href="/">{site.name}</a>
+    <a class="mark" href={withBase()}>{site.name}</a>
     <nav aria-label="Primary">
-      <a href="/#work">Work</a>
+      <a href={`${withBase()}#work`}>Work</a>
       <a href="#contact">Contact</a>
     </nav>
   </div>

@@ -1,5 +1,6 @@
 ---
 import { site } from "../data/site";
+import { withBase } from "../lib/url";
 
 const [first, ...rest] = site.name.split(" ");
 const photo = site.heroPhoto;
@@ -22,7 +23,7 @@ const photo = site.heroPhoto;
 
   <figure class="photo">
     <img
-      src={photo.src}
+      src={withBase(photo.src)}
       alt={photo.alt}
       width={photo.width}
       height={photo.height}
